@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>盲文转换器 - 国际标准 Unicode</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-dark: #3730a3;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-body); min-height: 100vh; padding: 20px; color: var(--text-primary); line-height: 1.6; }
+        .container { max-width: 700px; margin: 0 auto; background: var(--bg-card); border-radius: 20px; box-shadow: var(--shadow-lg); overflow: hidden; }
+        header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 40px 30px; text-align: center; }
+        .logo { font-size: 48px; margin-bottom: 10px; }
+        header h1 { font-size: 1.8em; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .subtitle { font-size: 0.95em; opacity: 0.9; font-weight: 400; }
+        main { padding: 30px; }
+        .mode-switch { display: flex; background: var(--bg-body); border-radius: var(--radius); padding: 4px; margin-bottom: 24px; }
+        .mode-btn { flex: 1; padding: 12px 20px; border: none; background: transparent; color: var(--text-secondary); font-size: 1em; font-weight: 600; border-radius: 10px; cursor: pointer; transition: all 0.25s ease; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .mode-btn:hover { color: var(--primary); }
+        .mode-btn.active { background: white; color: var(--primary); box-shadow: var(--shadow); }
+        .converter { display: flex; flex-direction: column; gap: 16px; }
+        .input-group, .output-group { display: flex; flex-direction: column; gap: 8px; }
+        .input-group label, .output-group label { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-primary); font-size: 0.95em; }
+        .label-icon { font-size: 1.1em; }
+        textarea { width: 100%; min-height: 100px; padding: 14px 16px; font-size: 1.05em; border: 2px solid var(--border); border-radius: var(--radius); resize: vertical; font-family: 'SF Mono', 'Monaco', 'Courier New', monospace; transition: all 0.25s ease; background: #fafbfc; color: var(--text-primary); }
+        textarea:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        textarea[readonly] { background: #f8fafc; color: var(--text-primary); border-color: var(--border); }
+        textarea::placeholder { color: #94a3b8; }
+        .input-info, .output-info { display: flex; justify-content: space-between; align-items: center; font-size: 0.85em; color: var(--text-secondary); }
+        .action-center { display: flex; justify-content: center; padding: 4px 0; }
+        .swap-btn { width: 44px; height: 44px; border: 2px solid var(--border); background: white; border-radius: 50%; font-size: 1.4em; cursor: pointer; transition: all 0.25s ease; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
+        .swap-btn:hover { border-color: var(--primary); color: var(--primary); transform: rotate(180deg); }
+        .output-buttons { display: flex; gap: 8px; }
+        .icon-btn { padding: 6px 14px; border: none; background: var(--bg-body); color: var(--text-secondary); font-size: 0.9em; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 4px; }
+        .icon-btn:hover { background: var(--primary); color: white; }
+        .quick-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: center; }
+        .quick-btn { padding: 10px 20px; border: 2px solid var(--border); background: white; color: var(--text-secondary); font-size: 0.9em; font-weight: 500; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
+        .quick-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .reference-section { margin-top: 24px; border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+        .reference-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: var(--bg-body); border-bottom: 1px solid var(--border); }
+        .reference-header h3 { font-size: 1em; font-weight: 600; color: var(--text-primary); }
+        .close-btn { width: 28px; height: 28px; border: none; background: transparent; color: var(--text-secondary); font-size: 1.1em; cursor: pointer; border-radius: 6px; transition: all 0.2s ease; }
+        .close-btn:hover { background: #fee2e2; color: #ef4444; }
+        .reference-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px; padding: 16px; background: #fafbfc; }
+        .ref-item { display: flex; flex-direction: column; align-items: center; padding: 8px; background: white; border-radius: 8px; border: 1px solid var(--border); transition: all 0.2s ease; }
+        .ref-item:hover { border-color: var(--primary-light); transform: translateY(-2px); box-shadow: var(--shadow); }
+        .ref-braille { font-size: 24px; line-height: 1.2; font-family: 'SF Mono', monospace; color: var(--text-primary); }
+        .ref-letter { font-size: 0.8em; color: var(--text-secondary); font-weight: 500; }
+        .ref-divider { grid-column: 1 / -1; height: 1px; background: var(--border); margin: 8px 0; }
+        .ref-marker { background: #fef3c7; border-color: #fcd34d; }
+        footer { padding: 20px; text-align: center; background: var(--bg-body); border-top: 1px solid var(--border); color: var(--text-secondary); font-size: 0.9em; }
+        kbd { display: inline-block; padding: 2px 8px; font-family: monospace; font-size: 0.9em; background: white; border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        @media (max-width: 600px) { body { padding: 12px; } header { padding: 30px 20px; } header h1 { font-size: 1.5em; } main { padding: 20px; } .mode-btn { padding: 10px 14px; font-size: 0.9em; } textarea { min-height: 80px; font-size: 1em; padding: 12px 14px; } .quick-actions { flex-direction: column; } .quick-btn { width: 100%; } .input-info, .output-info { flex-direction: column; align-items: flex-start; gap: 6px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">⠿</div>
+            <h1>盲文转换器</h1>
+            <p class="subtitle">国际标准 Unicode 盲文编码解码</p>
+        </header>
+        <main>
+            <div class="mode-switch">
+                <button id="encodeMode" class="mode-btn active" onclick="switchMode('encode')"><span class="icon">→</span> 编码</button>
+                <button id="decodeMode" class="mode-btn" onclick="switchMode('decode')"><span class="icon">←</span> 解码</button>
+            </div>
+            <div class="converter">
+                <div class="input-group">
+                    <label><span class="label-icon">📝</span><span id="inputLabelText">输入文字</span></label>
+                    <textarea id="inputText" placeholder="请输入要转换的内容..." oninput="autoConvert()"></textarea>
+                    <div class="input-info">
+                        <span id="inputHint">支持中文、英文、数字（数字和字母间建议加空格）、标点符号</span>
+                        <span id="charCount">0 字符</span>
+                    </div>
+                </div>
+                <div class="action-center">
+                    <button class="swap-btn" onclick="swapText()" title="交换输入输出">⇅</button>
+                </div>
+                <div class="output-group">
+                    <label><span class="label-icon">📋</span><span id="outputLabelText">盲文输出</span></label>
+                    <textarea id="outputText" placeholder="转换结果..." readonly onfocus="this.select()"></textarea>
+                    <div class="output-info">
+                        <span id="brailleCount">0 个盲文字符</span>
+                        <div class="output-buttons">
+                            <button class="icon-btn" onclick="copyOutput()"><span id="copyIcon">📋</span> <span id="copyText">复制</span></button>
+                            <button class="icon-btn" onclick="clearAll()">🗑️ 清空</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="quick-actions">
+                <button class="quick-btn" onclick="insertSample()">示例文本</button>
+                <button class="quick-btn" onclick="showReference()">盲文对照表</button>
+            </div>
+            <div class="reference-section" id="referenceSection" style="display: none;">
+                <div class="reference-header">
+                    <h3>盲文字母对照表</h3>
+                    <button class="close-btn" onclick="hideReference()">✕</button>
+                </div>
+                <div class="reference-grid" id="referenceGrid"></div>
+            </div>
+        </main>
+        <footer><p>使用 <kbd>Enter</kbd> 键转换 · 输入时自动实时转换</p></footer>
+    </div>
+    <script>
+        // 盲文数据
+        const LETTER_BRAILLE = {'a': '⠁', 'b': '⠃', 'c': '⠉', 'd': '⠙', 'e': '⠑', 'f': '⠋', 'g': '⠛', 'h': '⠓', 'i': '⠊', 'j': '⠚', 'k': '⠅', 'l': '⠇', 'm': '⠍', 'n': '⠝', 'o': '⠕', 'p': '⠏', 'q': '⠟', 'r': '⠗', 's': '⠎', 't': '⠞', 'u': '⠥', 'v': '⠧', 'w': '⠺', 'x': '⠭', 'y': '⠽', 'z': '⠵'};
+        const NUMBER_MARKER = '⠼';
+        const NUMBER_BRAILLE = {'1': 'a', '2': 'b', '3': 'c', '4': 'd', '5': 'e', '6': 'f', '7': 'g', '8': 'h', '9': 'i', '0': 'j'};
+        const CAPITAL_MARKER = '⠠';
+        const BRAILLE_TO_LETTER = {};
+        for (let letter in LETTER_BRAILLE) BRAILLE_TO_LETTER[LETTER_BRAILLE[letter]] = letter;
+        const BRAILLE_TO_PUNCTUATION = {',': ',', ';': ';', ':': ':', '.': '.', '!': '!', '?': '?', '(': '(', ')': ')', '-': '-', '"': '"', "'": "'", '/': '/'};
+
+        let currentMode = 'encode';
+        document.addEventListener('DOMContentLoaded', function() { generateReference(); updateCharCount(); });
+
+        function switchMode(mode) {
+            currentMode = mode;
+            const encodeBtn = document.getElementById('encodeMode');
+            const decodeBtn = document.getElementById('decodeMode');
+            const inputLabelText = document.getElementById('inputLabelText');
+            const outputLabelText = document.getElementById('outputLabelText');
+            const inputHint = document.getElementById('inputHint');
+            const inputText = document.getElementById('inputText');
+            if (mode === 'encode') { encodeBtn.classList.add('active'); decodeBtn.classList.remove('active'); inputLabelText.textContent = '输入文字'; outputLabelText.textContent = '盲文输出'; inputHint.textContent = '支持中文、英文、数字（数字和字母间建议加空格）、标点符号'; inputText.placeholder = '请输入要转换的文字，如：Hello World'; }
+            else { encodeBtn.classList.remove('active'); decodeBtn.classList.add('active'); inputLabelText.textContent = '输入盲文'; outputLabelText.textContent = '文字输出'; inputHint.textContent = '输入 Unicode 盲文字符，如：⠓⠑⠇⠇⠕'; inputText.placeholder = '请输入盲文字符，如：⠓⠑⠇⠇⠕'; }
+            document.getElementById('inputText').value = ''; document.getElementById('outputText').value = ''; updateCharCount();
+        }
+
+        function autoConvert() {
+            const inputText = document.getElementById('inputText').value;
+            const outputText = document.getElementById('outputText');
+            if (!inputText.trim()) { outputText.value = ''; updateCharCount(); return; }
+            outputText.value = currentMode === 'encode' ? encodeBraille(inputText) : decodeBraille(inputText);
+            updateCharCount();
+        }
+
+        function updateCharCount() {
+            const inputText = document.getElementById('inputText').value;
+            const outputText = document.getElementById('outputText').value;
+            document.getElementById('charCount').textContent = inputText.length + ' 字符';
+            let brailleCount = 0;
+            for (let char of outputText) { let code = char.charCodeAt(0); if (code >= 0x2800 && code <= 0x28FF) brailleCount++; }
+            document.getElementById('brailleCount').textContent = brailleCount + ' 个盲文字符';
+        }
+
+        function convert() { autoConvert(); }
+
+        function swapText() { const inputText = document.getElementById('inputText'); const outputText = document.getElementById('outputText'); const newMode = currentMode === 'encode' ? 'decode' : 'encode'; switchMode(newMode); inputText.value = outputText.value; autoConvert(); }
+
+        function copyOutput() {
+            const outputText = document.getElementById('outputText');
+            if (!outputText.value) return;
+            navigator.clipboard.writeText(outputText.value).then(() => {
+                const copyText = document.getElementById('copyText'); const copyIcon = document.getElementById('copyIcon');
+                copyText.textContent = '已复制'; copyIcon.textContent = '✅';
+                setTimeout(() => { copyText.textContent = '复制'; copyIcon.textContent = '📋'; }, 2000);
+            });
+        }
+
+        function clearAll() { document.getElementById('inputText').value = ''; document.getElementById('outputText').value = ''; document.getElementById('inputText').focus(); updateCharCount(); }
+        function insertSample() { document.getElementById('inputText').value = currentMode === 'encode' ? 'Hello World! 你好世界！' : '⠓⠑⠇⠇⠕ ⠺⠕⠗⠇⠙⠖'; autoConvert(); }
+        function showReference() { const section = document.getElementById('referenceSection'); section.style.display = 'block'; section.scrollIntoView({ behavior: 'smooth' }); }
+        function hideReference() { document.getElementById('referenceSection').style.display = 'none'; }
+
+        function generateReference() {
+            const grid = document.getElementById('referenceGrid');
+            let html = '';
+            for (let letter of 'abcdefghijklmnopqrstuvwxyz'.split('')) { let braille = LETTER_BRAILLE[letter]; if (braille) html += '<div class="ref-item"><span class="ref-braille">' + braille + '</span><span class="ref-letter">' + letter + '</span></div>'; }
+            html += '<div class="ref-divider"></div><div class="ref-item ref-marker"><span class="ref-braille">⠼</span><span class="ref-letter">数字</span></div>';
+            grid.innerHTML = html;
+        }
+
+        // 编码函数
+        function encodeBraille(text) {
+            if (!text || typeof text !== 'string') return '';
+            let result = ''; let isNumberMode = false;
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                if (char === ' ') { result += ' '; isNumberMode = false; continue; }
+                let isUpperCase = char >= 'A' && char <= 'Z';
+                let lowerChar = char.toLowerCase();
+                if (/[0-9]/.test(char)) { if (!isNumberMode) { result += NUMBER_MARKER; isNumberMode = true; } let letter = NUMBER_BRAILLE[char]; if (letter) result += LETTER_BRAILLE[letter]; continue; }
+                if (isNumberMode) isNumberMode = false;
+                if (/[a-zA-Z]/.test(lowerChar)) { if (isUpperCase) result += CAPITAL_MARKER; if (LETTER_BRAILLE[lowerChar]) result += LETTER_BRAILLE[lowerChar]; continue; }
+                isNumberMode = false;
+                if (/[,;:!?()\-"'\/]/.test(char)) { result += {'，':',','；':';','：':':','！':'!','？':'?','（':'(','）':')','—':'-','"':'"','\'':"'",'／':'/'}[char] || char; continue; }
+                result += char;
+            }
+            return result;
+        }
+
+        // 解码函数
+        function decodeBraille(braille) {
+            if (!braille || typeof braille !== 'string') return '';
+            let result = ''; let isNumberMode = false; let i = 0;
+            const digitLetters = new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']);
+            while (i < braille.length) {
+                let char = braille[i];
+                if (char === ' ') { if (result.length > 0 && result[result.length - 1] !== ' ') result += ' '; isNumberMode = false; i++; continue; }
+                let code = char.charCodeAt(0);
+                if (code < 0x2800 || code > 0x28FF) { result += char; isNumberMode = false; i++; continue; }
+                if (char === CAPITAL_MARKER) { let next = braille[i+1]; if (next && BRAILLE_TO_LETTER[next]) { result += BRAILLE_TO_LETTER[next].toUpperCase(); i += 2; continue; } i++; continue; }
+                if (char === NUMBER_MARKER) { isNumberMode = true; i++; continue; }
+                let letter = BRAILLE_TO_LETTER[char];
+                if (isNumberMode && letter) {
+                    if (digitLetters.has(letter)) {
+                        for (let num in NUMBER_BRAILLE) { if (NUMBER_BRAILLE[num] === letter) { result += num; break; } }
+                        let nextChar = braille[i + 1]; let shouldStayInNumberMode = false;
+                        if (nextChar) {
+                            if (nextChar === ' ') shouldStayInNumberMode = false;
+                            else if (nextChar === NUMBER_MARKER) shouldStayInNumberMode = true;
+                            else { let nextCode = nextChar.charCodeAt(0); if (nextCode < 0x2800 || nextCode > 0x28FF) shouldStayInNumberMode = false; else { let nextLetter = BRAILLE_TO_LETTER[nextChar]; if (nextLetter && digitLetters.has(nextLetter)) shouldStayInNumberMode = true; else shouldStayInNumberMode = false; } }
+                        }
+                        if (!shouldStayInNumberMode) isNumberMode = false;
+                    } else { isNumberMode = false; result += letter; }
+                } else { if (letter) result += letter; else if (BRAILLE_TO_PUNCTUATION[char]) result += BRAILLE_TO_PUNCTUATION[char]; isNumberMode = false; }
+                i++;
+            }
+            return result.trim();
+        }
+
+        document.getElementById('inputText').addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); convert(); } });
+    </script>
+</body>
+</html>
