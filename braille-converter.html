@@ -6,19 +6,7 @@
     <title>盲文转换器 - 国际标准 Unicode</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --primary: #4f46e5;
-            --primary-light: #818cf8;
-            --primary-dark: #3730a3;
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --border: #e2e8f0;
-            --radius: 12px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
+        :root { --primary: #4f46e5; --primary-light: #818cf8; --primary-dark: #3730a3; --bg-body: #f8fafc; --bg-card: #ffffff; --text-primary: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 12px; --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-body); min-height: 100vh; padding: 20px; color: var(--text-primary); line-height: 1.6; }
         .container { max-width: 700px; margin: 0 auto; background: var(--bg-card); border-radius: 20px; box-shadow: var(--shadow-lg); overflow: hidden; }
         header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 40px 30px; text-align: center; }
@@ -45,7 +33,7 @@
         .output-buttons { display: flex; gap: 8px; }
         .icon-btn { padding: 6px 14px; border: none; background: var(--bg-body); color: var(--text-secondary); font-size: 0.9em; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 4px; }
         .icon-btn:hover { background: var(--primary); color: white; }
-        .quick-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: center; }
+        .quick-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: center; flex-wrap: wrap; }
         .quick-btn { padding: 10px 20px; border: 2px solid var(--border); background: white; color: var(--text-secondary); font-size: 0.9em; font-weight: 500; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
         .quick-btn:hover { border-color: var(--primary); color: var(--primary); }
         .reference-section { margin-top: 24px; border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; }
@@ -82,7 +70,7 @@
                     <label><span class="label-icon">📝</span><span id="inputLabelText">输入文字</span></label>
                     <textarea id="inputText" placeholder="请输入要转换的内容..." oninput="autoConvert()"></textarea>
                     <div class="input-info">
-                        <span id="inputHint">支持中文、英文、数字（数字和字母间建议加空格）、标点符号</span>
+                        <span id="inputHint">支持中文（拼音）、英文、数字、标点符号</span>
                         <span id="charCount">0 字符</span>
                     </div>
                 </div>
@@ -116,14 +104,71 @@
         <footer><p>使用 <kbd>Enter</kbd> 键转换 · 输入时自动实时转换</p></footer>
     </div>
     <script>
-        // 盲文数据
-        const LETTER_BRAILLE = {'a': '⠁', 'b': '⠃', 'c': '⠉', 'd': '⠙', 'e': '⠑', 'f': '⠋', 'g': '⠛', 'h': '⠓', 'i': '⠊', 'j': '⠚', 'k': '⠅', 'l': '⠇', 'm': '⠍', 'n': '⠝', 'o': '⠕', 'p': '⠏', 'q': '⠟', 'r': '⠗', 's': '⠎', 't': '⠞', 'u': '⠥', 'v': '⠧', 'w': '⠺', 'x': '⠭', 'y': '⠽', 'z': '⠵'};
+        // ==================== 盲文数据 ====================
+        // 英文字母盲文 (国际标准)
+        const LETTER_BRAILLE = {
+            'a': '⠁', 'b': '⠃', 'c': '⠉', 'd': '⠙', 'e': '⠑', 'f': '⠋', 'g': '⠛', 'h': '⠓', 'i': '⠊', 'j': '⠚',
+            'k': '⠅', 'l': '⠇', 'm': '⠍', 'n': '⠝', 'o': '⠕', 'p': '⠏', 'q': '⠟', 'r': '⠗', 's': '⠎', 't': '⠞',
+            'u': '⠥', 'v': '⠧', 'w': '⠺', 'x': '⠭', 'y': '⠽', 'z': '⠵'
+        };
+
+        // 数字标记
         const NUMBER_MARKER = '⠼';
         const NUMBER_BRAILLE = {'1': 'a', '2': 'b', '3': 'c', '4': 'd', '5': 'e', '6': 'f', '7': 'g', '8': 'h', '9': 'i', '0': 'j'};
+
+        // 大写标记
         const CAPITAL_MARKER = '⠠';
+
+        // 声母盲文 (汉语盲文)
+        const INITIAL_BRAILLE = {
+            'b': '⠃', 'p': '⠚', 'm': '⠍', 'f': '⠋',
+            'd': '⠙', 't': '⠞', 'n': '⠝', 'l': '⠇',
+            'g': '⠛', 'k': '⠅', 'h': '⠓',
+            'j': '⠽', 'q': '⠟', 'x': '⠭',
+            'zh': '⠖', 'ch': '⠱', 'sh': '⠡', 'r': '⠢',
+            'z': '⠵', 'c': '⠒', 's': '⠎',
+            'y': '⠽', 'w': '⠺'
+        };
+
+        // 韵母盲文 (汉语盲文)
+        const FINAL_BRAILLE = {
+            'a': '⠁', 'o': '⠃', 'e': '⠉', 'i': '⠊', 'u': '⠥', 'v': '⠧', 'ü': '⠧',
+            'ai': '⠃', 'ei': '⠑', 'ui': '⠓', 'ao': '⠑', 'ou': '⠕', 'iu': '⠚', 'ie': '⠊', 'üe': '⠧', 'er': '⠃',
+            'an': '⠙', 'en': '⠓', 'in': '⠊', 'un': '⠕', 'vn': '⠧',
+            'ang': '⠚', 'eng': '⠔', 'ing': '⠔', 'ong': '⠶'
+        };
+
+        // 反向映射
         const BRAILLE_TO_LETTER = {};
         for (let letter in LETTER_BRAILLE) BRAILLE_TO_LETTER[LETTER_BRAILLE[letter]] = letter;
-        const BRAILLE_TO_PUNCTUATION = {',': ',', ';': ';', ':': ':', '.': '.', '!': '!', '?': '?', '(': '(', ')': ')', '-': '-', '"': '"', "'": "'", '/': '/'};
+
+        // 中文转拼音映射 (常用字)
+        const CHINESE_TO_PINYIN = {
+            '我': 'wo', '你': 'ni', '他': 'ta', '她': 'ta', '它': 'ta', '们': 'men',
+            '是': 'shi', '的': 'de', '了': 'le', '在': 'zai', '有': 'you', '和': 'he',
+            '这': 'zhe', '那': 'na', '中': 'zhong', '国': 'guo', '人': 'ren',
+            '来': 'lai', '去': 'qu', '看': 'kan', '听': 'ting', '说': 'shuo', '写': 'xie',
+            '好': 'hao', '坏': 'huai', '大': 'da', '小': 'xiao', '多': 'duo', '少': 'shao',
+            '天': 'tian', '地': 'di', '日': 'ri', '月': 'yue', '年': 'nian', '时': 'shi',
+            '水': 'shui', '火': 'huo', '风': 'feng', '雨': 'yu', '山': 'shan', '河': 'he',
+            '爱': 'ai', '喜': 'xi', '哭': 'ku', '笑': 'xiao', '走': 'zou', '跑': 'pao',
+            '吃': 'chi', '喝': 'he', '学': 'xue', '工': 'gong', '家': 'jia',
+            '爸': 'ba', '妈': 'ma', '爷': 'ye', '奶': 'nai', '哥': 'ge', '姐': 'jie',
+            '今': 'jin', '明': 'ming', '天': 'tian', '早': 'zao', '晚': 'wan',
+            '一': 'yi', '二': 'er', '三': 'san', '四': 'si', '五': 'wu', '六': 'liu', '七': 'qi', '八': 'ba', '九': 'jiu', '十': 'shi',
+            '请': 'qing', '对': 'dui', '没': 'mei', '不': 'bu', '很': 'hen', '会': 'hui',
+            '能': 'neng', '可': 'ke', '要': 'yao', '知': 'zhi', '道': 'dao',
+            '朋友': 'pengyou', '老师': 'laoshi', '学生': 'xuesheng', '同学': 'tongxue',
+            '中国': 'zhongguo', '中国人': 'zhongguoren', '世界': 'shijie', '人类': 'renlei',
+            '我爱你': 'woaini', '你好': 'nihao', '谢谢': 'xiexie', '再见': 'zaijian', '对不起': 'duibuqi',
+            '上': 'shang', '下': 'xia', '左': 'zuo', '右': 'you', '前': 'qian', '后': 'hou',
+            '东': 'dong', '西': 'xi', '南': 'nan', '北': 'bei',
+            '红': 'hong', '黄': 'huang', '蓝': 'lan', '绿': 'lv', '白': 'bai', '黑': 'hei',
+            '花': 'hua', '草': 'cao', '树': 'shu', '木': 'mu',
+            '车': 'che', '船': 'chuan', '飞': 'fei', '路': 'lu',
+            '心': 'xin', '头': 'tou', '手': 'shou', '脚': 'jiao', '眼': 'yan', '耳': 'er',
+            '男': 'nan', '女': 'nv', '老': 'lao', '少': 'shao'
+        };
 
         let currentMode = 'encode';
         document.addEventListener('DOMContentLoaded', function() { generateReference(); updateCharCount(); });
@@ -136,8 +181,17 @@
             const outputLabelText = document.getElementById('outputLabelText');
             const inputHint = document.getElementById('inputHint');
             const inputText = document.getElementById('inputText');
-            if (mode === 'encode') { encodeBtn.classList.add('active'); decodeBtn.classList.remove('active'); inputLabelText.textContent = '输入文字'; outputLabelText.textContent = '盲文输出'; inputHint.textContent = '支持中文、英文、数字（数字和字母间建议加空格）、标点符号'; inputText.placeholder = '请输入要转换的文字，如：Hello World'; }
-            else { encodeBtn.classList.remove('active'); decodeBtn.classList.add('active'); inputLabelText.textContent = '输入盲文'; outputLabelText.textContent = '文字输出'; inputHint.textContent = '输入 Unicode 盲文字符，如：⠓⠑⠇⠇⠕'; inputText.placeholder = '请输入盲文字符，如：⠓⠑⠇⠇⠕'; }
+            if (mode === 'encode') {
+                encodeBtn.classList.add('active'); decodeBtn.classList.remove('active');
+                inputLabelText.textContent = '输入文字'; outputLabelText.textContent = '盲文输出';
+                inputHint.textContent = '支持中文（拼音）、英文、数字、标点符号';
+                inputText.placeholder = '请输入要转换的文字，如：你好 Hello';
+            } else {
+                encodeBtn.classList.remove('active'); decodeBtn.classList.add('active');
+                inputLabelText.textContent = '输入盲文'; outputLabelText.textContent = '文字输出';
+                inputHint.textContent = '输入 Unicode 盲文字符';
+                inputText.placeholder = '请输入盲文字符，如：⠝⠊⠓⠁';
+            }
             document.getElementById('inputText').value = ''; document.getElementById('outputText').value = ''; updateCharCount();
         }
 
@@ -160,75 +214,238 @@
 
         function convert() { autoConvert(); }
 
-        function swapText() { const inputText = document.getElementById('inputText'); const outputText = document.getElementById('outputText'); const newMode = currentMode === 'encode' ? 'decode' : 'encode'; switchMode(newMode); inputText.value = outputText.value; autoConvert(); }
+        function swapText() {
+            const inputText = document.getElementById('inputText');
+            const outputText = document.getElementById('outputText');
+            const newMode = currentMode === 'encode' ? 'decode' : 'encode';
+            switchMode(newMode);
+            inputText.value = outputText.value;
+            autoConvert();
+        }
 
         function copyOutput() {
             const outputText = document.getElementById('outputText');
             if (!outputText.value) return;
             navigator.clipboard.writeText(outputText.value).then(() => {
-                const copyText = document.getElementById('copyText'); const copyIcon = document.getElementById('copyIcon');
+                const copyText = document.getElementById('copyText');
+                const copyIcon = document.getElementById('copyIcon');
                 copyText.textContent = '已复制'; copyIcon.textContent = '✅';
                 setTimeout(() => { copyText.textContent = '复制'; copyIcon.textContent = '📋'; }, 2000);
             });
         }
 
         function clearAll() { document.getElementById('inputText').value = ''; document.getElementById('outputText').value = ''; document.getElementById('inputText').focus(); updateCharCount(); }
-        function insertSample() { document.getElementById('inputText').value = currentMode === 'encode' ? 'Hello World! 你好世界！' : '⠓⠑⠇⠇⠕ ⠺⠕⠗⠇⠙⠖'; autoConvert(); }
+
+        function insertSample() {
+            const samples = {
+                'encode': ['你好 Hello', '世界 World', '我爱你 I love you', '中国 China'],
+                'decode': ['⠝⠊⠓⠁ ⠓⠑⠇⠇⠕', '⠤⠑⠁ ⠺⠕⠗⠇⠙']
+            };
+            document.getElementById('inputText').value = currentMode === 'encode' ? samples.encode[0] : samples.decode[0];
+            autoConvert();
+        }
+
         function showReference() { const section = document.getElementById('referenceSection'); section.style.display = 'block'; section.scrollIntoView({ behavior: 'smooth' }); }
         function hideReference() { document.getElementById('referenceSection').style.display = 'none'; }
 
         function generateReference() {
             const grid = document.getElementById('referenceGrid');
             let html = '';
-            for (let letter of 'abcdefghijklmnopqrstuvwxyz'.split('')) { let braille = LETTER_BRAILLE[letter]; if (braille) html += '<div class="ref-item"><span class="ref-braille">' + braille + '</span><span class="ref-letter">' + letter + '</span></div>'; }
-            html += '<div class="ref-divider"></div><div class="ref-item ref-marker"><span class="ref-braille">⠼</span><span class="ref-letter">数字</span></div>';
+            // 英文字母
+            for (let letter of 'abcdefghijklmnopqrstuvwxyz'.split('')) {
+                let braille = LETTER_BRAILLE[letter];
+                if (braille) html += '<div class="ref-item"><span class="ref-braille">' + braille + '</span><span class="ref-letter">' + letter + '</span></div>';
+            }
+            html += '<div class="ref-divider"></div>';
+            html += '<div class="ref-item ref-marker"><span class="ref-braille">⠼</span><span class="ref-letter">数字</span></div>';
             grid.innerHTML = html;
         }
 
-        // 编码函数
+        // ==================== 编码函数 ====================
         function encodeBraille(text) {
             if (!text || typeof text !== 'string') return '';
-            let result = ''; let isNumberMode = false;
+            let result = '';
+            let isNumberMode = false;
+            let isChineseMode = false;
+
             for (let i = 0; i < text.length; i++) {
                 let char = text[i];
-                if (char === ' ') { result += ' '; isNumberMode = false; continue; }
+
+                // 空格
+                if (char === ' ') {
+                    result += ' ';
+                    isNumberMode = false;
+                    isChineseMode = false;
+                    continue;
+                }
+
+                // 检测中文
+                if (/[\u4e00-\u9fa5]/.test(char)) {
+                    isChineseMode = true;
+                    let pinyin = getPinyin(char);
+                    if (pinyin) {
+                        // 编码声母
+                        let initial = getInitial(pinyin);
+                        if (initial && INITIAL_BRAILLE[initial]) {
+                            result += INITIAL_BRAILLE[initial];
+                        }
+                        // 编码韵母
+                        let final = getFinal(pinyin);
+                        if (final && FINAL_BRAILLE[final]) {
+                            result += FINAL_BRAILLE[final];
+                        }
+                    }
+                    continue;
+                }
+
+                // 退出中文模式
+                if (isChineseMode) {
+                    isChineseMode = false;
+                }
+
                 let isUpperCase = char >= 'A' && char <= 'Z';
                 let lowerChar = char.toLowerCase();
-                if (/[0-9]/.test(char)) { if (!isNumberMode) { result += NUMBER_MARKER; isNumberMode = true; } let letter = NUMBER_BRAILLE[char]; if (letter) result += LETTER_BRAILLE[letter]; continue; }
-                if (isNumberMode) isNumberMode = false;
-                if (/[a-zA-Z]/.test(lowerChar)) { if (isUpperCase) result += CAPITAL_MARKER; if (LETTER_BRAILLE[lowerChar]) result += LETTER_BRAILLE[lowerChar]; continue; }
+
+                // 数字
+                if (/[0-9]/.test(char)) {
+                    if (!isNumberMode) {
+                        result += NUMBER_MARKER;
+                        isNumberMode = true;
+                    }
+                    let letter = NUMBER_BRAILLE[char];
+                    if (letter && LETTER_BRAILLE[letter]) {
+                        result += LETTER_BRAILLE[letter];
+                    }
+                    continue;
+                }
+
+                // 退出数字模式
+                if (isNumberMode && /[a-zA-Z]/.test(lowerChar)) {
+                    isNumberMode = false;
+                }
+
+                // 英文字母
+                if (/[a-zA-Z]/.test(lowerChar)) {
+                    if (isUpperCase) {
+                        result += CAPITAL_MARKER;
+                    }
+                    if (LETTER_BRAILLE[lowerChar]) {
+                        result += LETTER_BRAILLE[lowerChar];
+                    }
+                    continue;
+                }
+
+                // 标点符号
                 isNumberMode = false;
-                if (/[,;:!?()\-"'\/]/.test(char)) { result += {'，':',','；':';','：':':','！':'!','？':'?','（':'(','）':')','—':'-','"':'"','\'':"'",'／':'/'}[char] || char; continue; }
                 result += char;
             }
+
             return result;
         }
 
-        // 解码函数
+        // 获取汉字拼音
+        function getPinyin(char) {
+            return CHINESE_TO_PINYIN[char] || null;
+        }
+
+        // 获取声母
+        function getInitial(pinyin) {
+            const initials = ['zh', 'ch', 'sh', 'b', 'p', 'm', 'f', 'd', 't', 'n', 'l', 'g', 'k', 'h', 'j', 'q', 'x', 'z', 'c', 's', 'r', 'y', 'w'];
+            for (let init of initials) {
+                if (pinyin.startsWith(init)) return init;
+            }
+            return '';
+        }
+
+        // 获取韵母
+        function getFinal(pinyin) {
+            const finals = ['ang', 'eng', 'ing', 'ong', 'ian', 'uan', 'iang', 'uang', 'iong', 'ai', 'ei', 'ui', 'ao', 'ou', 'iu', 'ie', 'üe', 'er', 'an', 'en', 'in', 'un', 'vn', 'a', 'o', 'e', 'i', 'u', 'v', 'ü'];
+            let initial = getInitial(pinyin);
+            let rest = pinyin.substring(initial.length);
+            for (let f of finals) {
+                if (rest === f) return f;
+            }
+            return rest;
+        }
+
+        // ==================== 解码函数 ====================
         function decodeBraille(braille) {
             if (!braille || typeof braille !== 'string') return '';
-            let result = ''; let isNumberMode = false; let i = 0;
+            let result = '';
+            let isNumberMode = false;
+            let i = 0;
             const digitLetters = new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']);
+
             while (i < braille.length) {
                 let char = braille[i];
-                if (char === ' ') { if (result.length > 0 && result[result.length - 1] !== ' ') result += ' '; isNumberMode = false; i++; continue; }
+
+                if (char === ' ') {
+                    if (result.length > 0 && result[result.length - 1] !== ' ') result += ' ';
+                    isNumberMode = false;
+                    i++;
+                    continue;
+                }
+
                 let code = char.charCodeAt(0);
-                if (code < 0x2800 || code > 0x28FF) { result += char; isNumberMode = false; i++; continue; }
-                if (char === CAPITAL_MARKER) { let next = braille[i+1]; if (next && BRAILLE_TO_LETTER[next]) { result += BRAILLE_TO_LETTER[next].toUpperCase(); i += 2; continue; } i++; continue; }
-                if (char === NUMBER_MARKER) { isNumberMode = true; i++; continue; }
+                if (code < 0x2800 || code > 0x28FF) {
+                    result += char;
+                    isNumberMode = false;
+                    i++;
+                    continue;
+                }
+
+                // 大写标记
+                if (char === CAPITAL_MARKER) {
+                    let next = braille[i+1];
+                    if (next && BRAILLE_TO_LETTER[next]) {
+                        result += BRAILLE_TO_LETTER[next].toUpperCase();
+                        i += 2;
+                        continue;
+                    }
+                    i++;
+                    continue;
+                }
+
+                // 数字标记
+                if (char === NUMBER_MARKER) {
+                    isNumberMode = true;
+                    i++;
+                    continue;
+                }
+
                 let letter = BRAILLE_TO_LETTER[char];
+
                 if (isNumberMode && letter) {
                     if (digitLetters.has(letter)) {
-                        for (let num in NUMBER_BRAILLE) { if (NUMBER_BRAILLE[num] === letter) { result += num; break; } }
-                        let nextChar = braille[i + 1]; let shouldStayInNumberMode = false;
-                        if (nextChar) {
-                            if (nextChar === ' ') shouldStayInNumberMode = false;
-                            else if (nextChar === NUMBER_MARKER) shouldStayInNumberMode = true;
-                            else { let nextCode = nextChar.charCodeAt(0); if (nextCode < 0x2800 || nextCode > 0x28FF) shouldStayInNumberMode = false; else { let nextLetter = BRAILLE_TO_LETTER[nextChar]; if (nextLetter && digitLetters.has(nextLetter)) shouldStayInNumberMode = true; else shouldStayInNumberMode = false; } }
+                        for (let num in NUMBER_BRAILLE) {
+                            if (NUMBER_BRAILLE[num] === letter) {
+                                result += num;
+                                break;
+                            }
                         }
-                        if (!shouldStayInNumberMode) isNumberMode = false;
-                    } else { isNumberMode = false; result += letter; }
-                } else { if (letter) result += letter; else if (BRAILLE_TO_PUNCTUATION[char]) result += BRAILLE_TO_PUNCTUATION[char]; isNumberMode = false; }
+                        // 检查下一个字符
+                        let nextChar = braille[i + 1];
+                        let shouldStay = false;
+                        if (nextChar) {
+                            if (nextChar === ' ') shouldStay = false;
+                            else if (nextChar === NUMBER_MARKER) shouldStay = true;
+                            else {
+                                let nextCode = nextChar.charCodeAt(0);
+                                if (nextCode >= 0x2800 && nextCode <= 0x28FF) {
+                                    let nextLetter = BRAILLE_TO_LETTER[nextChar];
+                                    if (nextLetter && digitLetters.has(nextLetter)) shouldStay = true;
+                                }
+                            }
+                        }
+                        if (!shouldStay) isNumberMode = false;
+                    } else {
+                        isNumberMode = false;
+                        result += letter;
+                    }
+                } else {
+                    if (letter) result += letter;
+                    isNumberMode = false;
+                }
                 i++;
             }
             return result.trim();
